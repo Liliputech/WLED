@@ -205,6 +205,10 @@
   #include "../usermods/LDR_Dusk_Dawn_v2/usermod_LDR_Dusk_Dawn_v2.h"
 #endif
 
+#ifdef USERMOD_POV_DISPLAY
+  #include "../usermods/pov_display/usermod_pov_display.h"
+#endif
+
 #ifdef USERMOD_STAIRCASE_WIPE
   #include "../usermods/stairway_wipe_basic/stairway-wipe-usermod-v2.h"
 #endif
@@ -412,5 +416,9 @@ void registerUsermods()
 
   #ifdef USERMOD_TETRISAI
   usermods.add(new TetrisAIUsermod());
+  #endif
+
+  #ifdef USERMOD_POV_DISPLAY
+  usermods.add(new PovDisplayUsermod());
   #endif
 }
