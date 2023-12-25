@@ -2,10 +2,11 @@
 #include "wled.h"
 #include <PNGdec.h>
 #include <AnimatedGIF.h>
-#define BRI 3
+#define BRIGHT_SHIFT 3
 #define FX_MODE_POV_IMAGE 255
+#define FX_MODE_2D_IMAGE  255
 static const char _data_FX_MODE_POV_IMAGE[] PROGMEM = "POV Image@!;;;1";
-
+static const char _data_FX_MODE_2D_IMAGE[] PROGMEM = "2D Image@!;;;2";
 AnimatedGIF gif;
 PNG png;
 File f;
@@ -65,7 +66,7 @@ int32_t seekPNG(PNGFILE *pFile, int32_t iPos)
 int32_t seekGIF(GIFFILE *pFile, int32_t iPos)
 { return seekFile((IMGFILE*) pFile, iPos); }
 
-void pngDraw(PNGDRAW *pDraw) {
+void pngPOV(PNGDRAW *pDraw) {
     uint16_t usPixels[SEGLEN];
     png.getLineAsRGB565(pDraw, usPixels, PNG_RGB565_LITTLE_ENDIAN, 0xffffffff);
     for(int x=0; x < SEGLEN; x++) {
@@ -75,72 +76,129 @@ void pngDraw(PNGDRAW *pDraw) {
 	byte b = (color & 0x1F);
 	SEGMENT.setPixelColor(x, RGBW32(r,g,b,0));
     }
-    busses.show();
+    strip.show();
 }
 
-void gifDraw(GIFDRAW *pDraw) {
+void png2D(PNGDRAW *pDraw) {
+    uint16_t usPixels[pDraw->iWidth];
+    for(int y=0; y < pDraw->iWidth; y++) {
+	png.getLineAsRGB565(pDraw, usPixels, PNG_RGB565_LITTLE_ENDIAN, 0xffffffff);
+	for(int x=0; x < SEGLEN; x++) {
+	    uint16_t color = usPixels[x];
+	    byte r = ((color >> 11) & 0x1F);
+	    byte g = ((color >> 5) & 0x3F);
+	    byte b = (color & 0x1F);
+	    SEGMENT.setPixelColorXY(x, y, RGBW32(r,g,b,0));
+	}
+    }
+    strip.show();
+}
+
+void gifPOV(GIFDRAW *pDraw) {
     uint8_t r, g, b, *s, *p, *pPal = (uint8_t *)pDraw->pPalette;
     int x, y = pDraw->iY + pDraw->y;
-    
     s = pDraw->pPixels;
     if (pDraw->ucDisposalMethod == 2) {
 	p = &pPal[pDraw->ucBackground * 3];
 	r = p[0]; g = p[1]; b = p[2];
 	for (x=0; x<pDraw->iWidth; x++)
-	{
-	    if (s[x] == pDraw->ucTransparent) {
+	    if (s[x] == pDraw->ucTransparent)
 		SEGMENT.setPixelColor(x, RGBW32(r, g, b, 0));
+	pDraw->ucHasTransparency = 0;
+    }
+
+
+    if (pDraw->ucHasTransparency) {
+	const uint8_t ucTransparent = pDraw->ucTransparent;
+	for (x=0; x<pDraw->iWidth; x++)
+	    if (s[x] != ucTransparent) {
+		p = &pPal[s[x] * 3];
+		SEGMENT.setPixelColor(x, RGBW32(p[0]>>BRIGHT_SHIFT, p[1]>>BRIGHT_SHIFT, p[2]>>BRIGHT_SHIFT, 0));
 	    }
+    }
+
+    else
+	for (x=0; x<pDraw->iWidth; x++) {
+	    p = &pPal[s[x] * 3];
+	    SEGMENT.setPixelColor(x, RGBW32(p[0], p[1], p[2], 0));
 	}
+    strip.show();
+}
+
+void gif2D(GIFDRAW *pDraw) {
+    uint8_t r, g, b, *s, *p, *pPal = (uint8_t *)pDraw->pPalette;
+    int x, y = pDraw->iY + pDraw->y;
+
+    s = pDraw->pPixels;
+    if (pDraw->ucDisposalMethod == 2) {
+	p = &pPal[pDraw->ucBackground * 3];
+	r = p[0] >> BRIGHT_SHIFT; g = p[1] >> BRIGHT_SHIFT; b = p[2] >> BRIGHT_SHIFT;
+	for (x=0; x<pDraw->iWidth; x++)
+	    if (s[x] == pDraw->ucTransparent)
+	    SEGMENT.setPixelColorXY(x, y, RGBW32(r,g,b,0));
 	pDraw->ucHasTransparency = 0;
     }
 
     if (pDraw->ucHasTransparency) {
 	const uint8_t ucTransparent = pDraw->ucTransparent;
-	for (x=0; x<pDraw->iWidth; x++)	{
+	for (x=0; x<pDraw->iWidth; x++)
 	    if (s[x] != ucTransparent) {
 		p = &pPal[s[x] * 3];
-		SEGMENT.setPixelColor(x, RGBW32(p[0]>>BRI, p[1]>>BRI, p[2]>>BRI, 0));
+		r = p[0] >> BRIGHT_SHIFT; g = p[1] >> BRIGHT_SHIFT; b = p[2] >> BRIGHT_SHIFT;
+		SEGMENT.setPixelColorXY(x, y, RGBW32(r,g,b,0));
 	    }
-	}
     }
 
-    else // no transparency, just copy them all
-    {
-	for (x=0; x<pDraw->iWidth; x++)
-	{
+    else
+	for (x=0; x<pDraw->iWidth; x++) {
 	    p = &pPal[s[x] * 3];
-	    SEGMENT.setPixelColor(x, RGBW32(p[0], p[1], p[2], 0));
+	    r = p[0] >> BRIGHT_SHIFT; g = p[1] >> BRIGHT_SHIFT; b = p[2] >> BRIGHT_SHIFT;
+	    SEGMENT.setPixelColorXY(x, y, RGBW32(r,g,b,0));
 	}
-    }
-    busses.show();
-}
 
-void pov_image() {
-    const char * filepath = SEGMENT.name;
-    int rc = png.open(filepath, openFile, closeFile, readPNG, seekPNG, pngDraw);
-    if (rc == PNG_SUCCESS) {
-	if (png.getWidth() != SEGLEN) return;
-	rc = png.decode(NULL, 0);
-	png.close();
-	return;
-    }
-
-    gif.begin(GIF_PALETTE_RGB888);
-    rc = gif.open(filepath, openFile, closeFile, readGIF, seekGIF, gifDraw);
-    if (rc) {
-	if (gif.getCanvasWidth() != SEGLEN) return;
-	while (gif.playFrame(true, NULL)) {}
-	gif.close();
-    }
+    if (pDraw->y == pDraw->iHeight-1) // last line has been decoded, display the image
+	strip.show();
 }
 
 uint16_t mode_pov_image(void) {
-    pov_image();
+    const char * filepath = SEGMENT.name;
+    int rc = png.open(filepath, openFile, closeFile, readPNG, seekPNG, pngPOV);
+    if (rc == PNG_SUCCESS && png.getWidth() == SEGLEN) {
+	rc = png.decode(NULL, 0);
+	png.close();
+	return FRAMETIME;
+    }
+
+    gif.begin(GIF_PALETTE_RGB888);
+    rc = gif.open(filepath, openFile, closeFile, readGIF, seekGIF, gifPOV);
+    if (rc && gif.getCanvasWidth() == SEGLEN) {
+	while (gif.playFrame(true, NULL)) {}
+	gif.close();
+	return FRAMETIME;
+    }
     return FRAMETIME;
 }
 
-class PovDisplayUsermod : public Usermod
+uint16_t mode_2d_image(void) {
+    const char * filepath = SEGMENT.name;
+    int rc = png.open(filepath, openFile, closeFile, readPNG, seekPNG, png2D);
+    if (rc == PNG_SUCCESS && png.getWidth() * png.getHeight() == SEGLEN) {
+	rc = png.decode(NULL, 0);
+	png.close();
+	return FRAMETIME;
+    }
+
+    gif.begin(GIF_PALETTE_RGB888);
+    rc = gif.open(filepath, openFile, closeFile, readGIF, seekGIF, gif2D);
+    if (rc && gif.getCanvasWidth() * gif.getCanvasHeight() == SEGLEN) {
+	while (gif.playFrame(true, NULL)) {}
+	gif.close();
+	return FRAMETIME;
+    }
+    return FRAMETIME;
+}
+
+class ImgDisplayUsermod : public Usermod
 {
   protected:
 	bool enabled = false; //WLEDMM
@@ -150,6 +208,7 @@ class PovDisplayUsermod : public Usermod
   public:
     void setup() {
 	strip.addEffect(FX_MODE_POV_IMAGE, &mode_pov_image, _data_FX_MODE_POV_IMAGE);
+	strip.addEffect(FX_MODE_2D_IMAGE, &mode_2d_image, _data_FX_MODE_2D_IMAGE);
 	initDone=true;
     }
 

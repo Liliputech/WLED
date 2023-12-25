@@ -201,12 +201,17 @@
   #include "../usermods/mpu6050_imu/usermod_gyro_surge.h"
 #endif
 
+
 #ifdef USERMOD_LDR_DUSK_DAWN
   #include "../usermods/LDR_Dusk_Dawn_v2/usermod_LDR_Dusk_Dawn_v2.h"
 #endif
 
 #ifdef USERMOD_POV_DISPLAY
   #include "../usermods/pov_display/usermod_pov_display.h"
+#endif
+
+#ifdef USERMOD_IMG_DISPLAY
+#include "../usermods/img_display/usermod_img_display.h"
 #endif
 
 #ifdef USERMOD_STAIRCASE_WIPE
@@ -420,5 +425,9 @@ void registerUsermods()
 
   #ifdef USERMOD_POV_DISPLAY
   usermods.add(new PovDisplayUsermod());
+  #endif
+
+  #ifdef USERMOD_IMG_DISPLAY
+    usermods.add(new ImgDisplayUsermod());
   #endif
 }
