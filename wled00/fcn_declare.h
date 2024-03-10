@@ -224,6 +224,7 @@ int fileReadCallback(void);
 int fileReadBlockCallback(void * buffer, int numberOfBytes);
 int fileSizeCallback(void);
 byte renderImageToSegment(Segment &seg);
+void endImagePlayback(Segment* seg);
 #endif
 
 //improv.cpp
