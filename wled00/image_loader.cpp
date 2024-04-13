@@ -99,9 +99,9 @@ byte renderImageToSegment(Segment &seg) {
     decoder.setFileReadBlockCallback(fileReadBlockCallback);
     decoder.setFileSizeCallback(fileSizeCallback);
     decoder.alloc();
-    Serial.println("Starting decoding");
+    DEBUG_PRINTLN(F("Starting decoding"));
     if(decoder.startDecoding() < 0) { gifDecodeFailed = true; return IMAGE_ERROR_GIF_DECODE; }
-    Serial.println("Decoding started");
+    DEBUG_PRINTLN(F("Decoding started"));
   }
 
   if (gifDecodeFailed) return IMAGE_ERROR_PREV;
@@ -129,14 +129,14 @@ byte renderImageToSegment(Segment &seg) {
 }
 
 void endImagePlayback(Segment *seg) {
-  Serial.println("Image playback end called");
+  DEBUG_PRINTLN(F("Image playback end called"));
   if (!activeSeg || activeSeg != seg) return;
   if (file) file.close();
   decoder.dealloc();
   gifDecodeFailed = false;
   activeSeg = nullptr;
   lastFilename[1] = '\0';
-  Serial.println("Image playback ended");
+  DEBUG_PRINTLN(F("Image playback ended"));
 }
 
 #endif
