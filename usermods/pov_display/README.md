@@ -14,7 +14,7 @@ Best results with high-density strips (e.g., 144 LEDs/m).
 To get it working:
 - Resize your image. The height must match the number of LEDs in your strip/segment.
 - Rotate your image 90° clockwise (height becomes width).
-- Upload a BMP image (24-bit, uncompressed) to the ESP filesystem using the “/edit” URL.
+- Upload a BMP image (24-bit, uncompressed) or a GIF image to the ESP filesystem using the “/edit” URL.
 - Select the “POV Image” effect.
 - Set the segment name to the absolute filesystem path of the image (e.g., “/myimage.bmp”).
 - The path is case-sensitive and must start with “/”.
@@ -23,8 +23,10 @@ To get it working:
 - Enjoy the show!
 
 Notes:
-- Only 24-bit uncompressed BMP files are supported.
-- The image must fit into ~64 KB of RAM (width × height × 3 bytes, plus row padding to a 4-byte boundary).
+- Supported formats: 24-bit uncompressed BMP files, and GIF files (including animated GIFs) when the firmware is built with GIF support (WLED_ENABLE_GIF, enabled by default on ESP32 builds).
+- The image must fit into ~64 KB of RAM (width × height × 3 bytes, plus row padding to a 4-byte boundary for BMP; GIFs use the same limit without padding).
+- Animated GIFs advance one frame per full strip revolution; the GIF's own frame delays are not used for pacing.
+- The GIF decoder rejects images wider than 320 pixels.
 - Examples (approximate, excluding row padding):
   - 128×128 (49,152 bytes) fits.
   - 160×160 (76,800 bytes) does NOT fit.
@@ -34,11 +36,11 @@ Notes:
 
 ### Requirements
 - 1D rotating LED strip/segment (POV setup). Ensure the segment length equals the number of physical LEDs.
-- BMP image saved as 24‑bit, uncompressed (no alpha, no palette).
+- BMP image saved as 24‑bit, uncompressed (no alpha, no palette), or a GIF image (requires a build with GIF support enabled).
 - Sufficient free RAM (~64 KB) for the image buffer.
 
 ### Troubleshooting
-- Nothing displays: verify the file exists at the exact absolute path (case‑sensitive) and is a 24‑bit uncompressed BMP.
+- Nothing displays: verify the file exists at the exact absolute path (case‑sensitive) and is a supported image (24‑bit uncompressed BMP, or GIF on builds with GIF support).
 - Garbled colors or wrong orientation: re‑export as 24‑bit BMP and retry the rotation/flip guidance above.
 - Image too large: reduce width and/or height until it fits within ~64 KB (see examples).
 - Path issues: confirm you uploaded the file via the “/edit” URL and can see it in the filesystem browser.
