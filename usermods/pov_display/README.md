@@ -16,8 +16,8 @@ To get it working:
 - Rotate your image 90° clockwise (height becomes width).
 - Upload a BMP image (24-bit, uncompressed) or a GIF image to the ESP filesystem using the “/edit” URL.
 - Select the “POV Image” effect.
-- Set the segment name to the absolute filesystem path of the image (e.g., “/myimage.bmp”).
-- The path is case-sensitive and must start with “/”.
+- Set the segment name to the image path relative to the filesystem root, without a leading slash (e.g., “myimage.bmp”) — the same format as the core “Image” effect.
+- The path is case-sensitive.
 - Rotate the pixel strip at approximately 20 RPM.
 - Tune as needed so that one full revolution maps to the image width (if the image appears stretched or compressed, adjust RPM slightly).
 - Enjoy the show!
@@ -32,7 +32,7 @@ Notes:
   - 160×160 (76,800 bytes) does NOT fit.
   - 96×192 (55,296 bytes) fits; padding may add a small overhead.
 - If the rendered image appears mirrored or upside‑down, rotate 90° the other way or flip horizontally in your editor and try again.
-- The path must be absolute.
+- Like the core “Image” effect, the firmware prepends “/” to the segment name to build the file path, so the name itself must not start with “/”.
 
 ### Requirements
 - 1D rotating LED strip/segment (POV setup). Ensure the segment length equals the number of physical LEDs.
@@ -40,7 +40,7 @@ Notes:
 - Sufficient free RAM (~64 KB) for the image buffer.
 
 ### Troubleshooting
-- Nothing displays: verify the file exists at the exact absolute path (case‑sensitive) and is a supported image (24‑bit uncompressed BMP, or GIF on builds with GIF support).
+- Nothing displays: verify the file exists at the exact path (case‑sensitive) and is a supported image (24‑bit uncompressed BMP, or GIF on builds with GIF support).
 - Garbled colors or wrong orientation: re‑export as 24‑bit BMP and retry the rotation/flip guidance above.
 - Image too large: reduce width and/or height until it fits within ~64 KB (see examples).
 - Path issues: confirm you uploaded the file via the “/edit” URL and can see it in the filesystem browser.

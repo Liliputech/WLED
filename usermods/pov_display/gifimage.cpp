@@ -63,7 +63,7 @@ bool GIFimage::init(const char* fn) {
   unload(); // release any previous image
   strcpy(filename, "");
 
-  if (strlen(fn) > WLED_MAX_SEGNAME_LEN) return false;
+  if (strlen(fn) >= sizeof(filename)) return false; // filename = "/" + segment name
 
   s_file = WLED_FS.open(fn, "r");
   if (!s_file) return false;
