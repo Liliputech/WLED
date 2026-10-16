@@ -31,8 +31,11 @@ Notes:
   - 128×128 (49,152 bytes) fits.
   - 160×160 (76,800 bytes) does NOT fit.
   - 96×192 (55,296 bytes) fits; padding may add a small overhead.
-- If the rendered image appears mirrored or upside‑down, rotate 90° the other way or flip horizontally in your editor and try again.
+- If the rendered image appears mirrored or upside‑down, rotate 90° the other way or flip horizontally in your editor and try again. For upside‑down images you can instead define the `USERMOD_POV_DISPLAY_FLIP_VERTICAL` build flag (see “Build options” below) and rebuild — no image re-export needed.
 - Like the core “Image” effect, the firmware prepends “/” to the segment name to build the file path, so the name itself must not start with “/”.
+
+### Build options
+- `USERMOD_POV_DISPLAY_FLIP_VERTICAL` — define this build flag (e.g. add `-D USERMOD_POV_DISPLAY_FLIP_VERTICAL` to `build_flags` in `platformio_override.ini`) to mirror the image vertically. Enable it when the image appears upside-down on the rotating strip; it applies to both BMP and GIF images. The correct orientation depends on which end of the strip is LED 0, so this is a per-build setting.
 
 ### Requirements
 - 1D rotating LED strip/segment (POV setup). Ensure the segment length equals the number of physical LEDs.
