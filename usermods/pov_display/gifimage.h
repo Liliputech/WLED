@@ -66,7 +66,7 @@ class GIFimage {
 
     private:
         GifDecoder<320, 320, 12, false> decoder;
-        char filename[WLED_MAX_SEGNAME_LEN+1] = "";
+        char filename[WLED_MAX_SEGNAME_LEN+2] = ""; // "/" + segment name + '\0'
         int _width = 0;
         int _height = 0;
         bool _loaded = false;

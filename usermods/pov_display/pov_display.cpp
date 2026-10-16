@@ -31,10 +31,19 @@ void mode_pov_image(void) {
     return;
   }
 
+  // The segment name is the image path relative to the filesystem root, without
+  // a leading '/' - the same format as the core "Image" effect. The filename
+  // always starts with '/', so prepend it (mirrors renderImageToSegment() in
+  // wled00/image_loader.cpp).
+  char imgPath[WLED_MAX_SEGNAME_LEN+2]; // enough space for "/" + seg.name + '\0'
+  strcpy(imgPath, "/");
+  strncpy(imgPath + 1, segName, WLED_MAX_SEGNAME_LEN);
+  imgPath[WLED_MAX_SEGNAME_LEN+1] = '\0'; // ensure termination when the name was truncated
+
   // Only proceed for image files: .bmp, and .gif when GIF support is compiled in
-  size_t segLen = strlen(segName);
-  if (segLen < 4) return;
-  const char* ext = segName + (segLen - 4);
+  size_t imgLen = strlen(imgPath);
+  if (imgLen < 4) return;
+  const char* ext = imgPath + (imgLen - 4);
 
   bool isBmp = (ext[0] == '.') &&
                (ext[1] == 'b' || ext[1] == 'B') &&
@@ -55,7 +64,7 @@ void mode_pov_image(void) {
   // If image is already loaded and matches, show next column.
   // An unloaded matching image falls through to the rate-limited load below,
   // so failed loads are retried.
-  if (current && strcmp(segName, current) == 0 && s_pov.isLoaded() && s_pov.width() > 0) {
+  if (current && strcmp(imgPath, current) == 0 && s_pov.isLoaded() && s_pov.width() > 0) {
     showAndAdvance(seg);
     return;
   }
@@ -72,7 +81,7 @@ void mode_pov_image(void) {
   // Try to load at most twice per second
   if (nowMs - s_lastLoadAttemptMs >= 500) {
     s_lastLoadAttemptMs = nowMs;
-    if (s_pov.loadImage(segName)) {
+    if (s_pov.loadImage(imgPath)) {
       // Successfully loaded, show first column
       seg.aux0 = 0;
       showAndAdvance(seg);
