@@ -36,7 +36,7 @@ class BMPimage {
         char * getFilename() {return filename;};
 
     private:
-        char filename[WLED_MAX_SEGNAME_LEN+1]="";
+        char filename[WLED_MAX_SEGNAME_LEN+2]=""; // "/" + segment name + '\0'
         int _width=0;
         int _height=0;
         int _rowSize=0;
