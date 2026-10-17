@@ -53,16 +53,20 @@ class GIFimage {
         /* Decodes the next frame into the frame buffer, looping back to the
          * first frame after the last one. Returns false on decode errors
          * (the image becomes unloaded and can be retried via init()).
+         * Single-frame GIFs are decoded only once; later calls are no-ops
+         * because the frame buffer already holds the image.
          */
         bool decodeFrame();
 
         /* Releases the frame buffer, the decoder and the file handle */
         void unload();
 
-        /* Returns a pointer to the RGB triplet of pixel (col,row), or nullptr
-         * when the image is not loaded or the coordinates are out of range
+        /* Returns a pointer to the RGB triplet of the first pixel (col, 0) of a
+         * column, or nullptr when the image is not loaded or the column is out
+         * of range. Pixels down the column are spaced width()*3 bytes apart
+         * (packed RGB, no padding).
          */
-        const uint8_t * pixel(uint16_t col, uint16_t row) const;
+        const uint8_t * columnPtr(uint16_t col) const;
 
     private:
         GifDecoder<320, 320, 12, false> decoder;
@@ -70,6 +74,7 @@ class GIFimage {
         int _width = 0;
         int _height = 0;
         bool _loaded = false;
+        bool _singleFrame = false; // true once a single-frame GIF has been decoded
 };
 // AI: end
 

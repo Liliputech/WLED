@@ -31,6 +31,17 @@ void mode_pov_image(void) {
     return;
   }
 
+  // Fast path: the image is already loaded and the segment name matches it.
+  // The stored filename is "/" + segment name, so it can be compared directly
+  // without rebuilding the path on every column. An unloaded matching image
+  // falls through to the rate-limited load below, so failed loads are retried.
+  const char* current = s_pov.getFilename();
+  if (current && current[0] == '/' && strcmp(segName, current + 1) == 0 && s_pov.isLoaded() && s_pov.width() > 0) {
+    showAndAdvance(seg);
+    return;
+  }
+
+  // Slow path: image not loaded (yet), load failed, or the segment was renamed.
   // The segment name is the image path relative to the filesystem root, without
   // a leading '/' - the same format as the core "Image" effect. The filename
   // always starts with '/', so prepend it (mirrors renderImageToSegment() in
@@ -58,16 +69,6 @@ void mode_pov_image(void) {
   constexpr bool isGif = false;
 #endif
   if (!isBmp && !isGif) return;
-
-  const char* current = s_pov.getFilename();
-
-  // If image is already loaded and matches, show next column.
-  // An unloaded matching image falls through to the rate-limited load below,
-  // so failed loads are retried.
-  if (current && strcmp(imgPath, current) == 0 && s_pov.isLoaded() && s_pov.width() > 0) {
-    showAndAdvance(seg);
-    return;
-  }
 
   // Image is loaded but doesn't match, or not loaded yet
   // If we have a different image loaded, keep displaying it while trying the new one
