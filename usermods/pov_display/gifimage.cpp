@@ -14,6 +14,7 @@ static File s_file;
 static uint8_t * s_frameBuffer = nullptr;
 static int s_gifWidth = 0;
 static int s_gifHeight = 0;
+static size_t s_rowStride = 0; // s_gifWidth * 3, precomputed in init()
 
 static bool povGifFileSeek(unsigned long position) {
   return s_file.seek(position);
@@ -53,7 +54,8 @@ static void povGifUpdateScreen(void) {
 
 static void povGifDrawPixel(int16_t x, int16_t y, uint8_t red, uint8_t green, uint8_t blue) {
   if (!s_frameBuffer || x < 0 || y < 0 || x >= s_gifWidth || y >= s_gifHeight) return;
-  uint8_t * p = s_frameBuffer + ((size_t)y * s_gifWidth + x) * 3;
+  // s_rowStride is precomputed in init(): one multiply per pixel instead of two
+  uint8_t * p = s_frameBuffer + (size_t)y * s_rowStride + (size_t)x * 3;
   p[0] = red;
   p[1] = green;
   p[2] = blue;
@@ -110,10 +112,12 @@ bool GIFimage::init(const char* fn) {
 
   s_gifWidth = w;
   s_gifHeight = h;
+  s_rowStride = (size_t)w * 3; // packed RGB row stride for the draw-pixel callback
   s_frameBuffer = (uint8_t*)malloc((size_t)w * h * 3);
   if (!s_frameBuffer) {
     DEBUG_PRINTLN(F("GIF frame buffer out of memory"));
     s_gifWidth = s_gifHeight = 0;
+    s_rowStride = 0;
     decoder.dealloc();
     s_file.close();
     return false;
@@ -132,6 +136,9 @@ bool GIFimage::decodeFrame() {
     _loaded = false;
     return false;
   }
+  // A single-frame GIF is decoded only once: the frame buffer already holds
+  // the image, so re-decoding on every sweep would just stall the column output.
+  if (_singleFrame) return true;
   // Decode one frame without the decoder's built-in delay; the POV effect
   // paces frames by sweep (one frame per full strip revolution).
   // A positive result of ERROR_DONE_PARSING means the last frame of a cycle
@@ -142,6 +149,9 @@ bool GIFimage::decodeFrame() {
     _loaded = false;
     return false;
   }
+  // ERROR_DONE_PARSING with a frame count of 1 means the GIF has a single
+  // frame; remember it so later calls skip the useless re-decode.
+  if (result == ERROR_DONE_PARSING && decoder.getFrameCount() == 1) _singleFrame = true;
   _loaded = true;
   return true;
 }
@@ -154,13 +164,15 @@ void GIFimage::unload() {
   decoder.dealloc();
   if (s_file) s_file.close();
   s_gifWidth = s_gifHeight = 0;
+  s_rowStride = 0;
   _width = _height = 0;
   _loaded = false;
+  _singleFrame = false;
 }
 
-const uint8_t * GIFimage::pixel(uint16_t col, uint16_t row) const {
-  if (!_loaded || !s_frameBuffer || col >= _width || row >= _height) return nullptr;
-  return s_frameBuffer + ((size_t)row * _width + col) * 3;
+const uint8_t * GIFimage::columnPtr(uint16_t col) const {
+  if (!_loaded || !s_frameBuffer || col >= _width) return nullptr;
+  return s_frameBuffer + (size_t)col * 3;
 }
 // AI: end
 
